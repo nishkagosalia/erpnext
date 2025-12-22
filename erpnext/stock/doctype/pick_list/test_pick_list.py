@@ -1525,3 +1525,73 @@ class TestPickList(IntegrationTestCase):
 		pick_list.cancel()
 		sales_order.cancel()
 		stock_entry.cancel()
+
+	def test_pick_list_with_different_address_in_so(self):
+		from erpnext.crm.doctype.prospect.test_prospect import make_address
+
+		customer_billing_address = make_address(
+			address_title="Company Billing", address_type="Billing", address_line1="100", city="Mumbai"
+		)
+		customer_billing_address.append("links", {"link_doctype": "Customer", "link_name": "_Test Customer"})
+		customer_billing_address.save()
+
+		customer_shipping_1 = make_address(
+			address_title="Customer Shipping 1", address_type="Shipping", address_line1="10"
+		)
+		customer_shipping_1.append("links", {"link_doctype": "Customer", "link_name": "_Test Customer"})
+		customer_shipping_1.save()
+
+		customer_shipping_2 = make_address(
+			address_title="Customer Shipping 2", address_type="Shipping", address_line1="11"
+		)
+		customer_shipping_2.append("links", {"link_doctype": "Customer", "link_name": "_Test Customer"})
+		customer_shipping_2.save()
+
+		sales_order_1 = make_sales_order(do_not_submit=True)
+		sales_order_1.customer_address = customer_billing_address.name
+		sales_order_1.shipping_address_name = customer_shipping_1.name
+		sales_order_1.submit()
+
+		sales_order_2 = make_sales_order(do_not_submit=True)
+		sales_order_2.customer_address = customer_billing_address.name
+		sales_order_2.shipping_address_name = customer_shipping_2.name
+		sales_order_2.submit()
+
+		pick_list = frappe.get_doc(
+			{
+				"doctype": "Pick List",
+				"company": "_Test Company",
+				"customer": "_Test Customer",
+				"items_based_on": "Sales Order",
+				"purpose": "Delivery",
+				"locations": [
+					{
+						"item_code": sales_order_1.items[0].item_code,
+						"qty": 5,
+						"stock_qty": 5,
+						"conversion_factor": 1,
+						"sales_order": sales_order_1.name,
+						"sales_order_item": sales_order_1.items[0].name,
+					},
+					{
+						"item_code": sales_order_2.items[0].item_code,
+						"qty": 5,
+						"stock_qty": 5,
+						"conversion_factor": 1,
+						"sales_order": sales_order_2.name,
+						"sales_order_item": sales_order_2.items[0].name,
+					},
+				],
+			}
+		)
+		pick_list.insert()
+		pick_list.set_item_locations()
+		pick_list.save()
+		pick_list.submit()
+
+		delivery_note = create_delivery_note(pick_list.name)
+		delivery_note_1 = delivery_note[0]
+		delivery_note_2 = delivery_note[1]
+
+		self.assertEqual(delivery_note_1.items[0].item_code, sales_order_1.items[0].item_code)
+		self.assertEqual(delivery_note_2.items[0].item_code, sales_order_2.items[0].item_code)

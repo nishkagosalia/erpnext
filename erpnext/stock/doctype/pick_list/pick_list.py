@@ -10,8 +10,8 @@ from frappe import _, bold
 from frappe.model.mapper import map_child_doc
 from frappe.query_builder import Case
 from frappe.query_builder.custom import GROUP_CONCAT
-from frappe.query_builder.functions import Coalesce, Locate, Replace, Sum
-from frappe.utils import ceil, cint, floor, flt, get_link_to_form
+from frappe.query_builder.functions import Coalesce, Concat, Count, Locate, Replace, Sum
+from frappe.utils import ceil, cint, comma_and, floor, flt, get_link_to_form
 from frappe.utils.nestedset import get_descendants_of
 
 from erpnext.selling.doctype.sales_order.sales_order import (
@@ -1242,6 +1242,11 @@ def create_delivery_note(source_name, target_doc=None):
 
 	if sales_dict:
 		delivery_note = create_dn_with_so(sales_dict, pick_list)
+		if len(delivery_note) > 1:
+			doc_list = [get_link_to_form("Delivery Note", p.name) for p in delivery_note]
+			frappe.msgprint(_("{0} created").format(comma_and(doc_list)))
+		else:
+			delivery_note = delivery_note[0]
 
 	if not all(item.sales_order for item in pick_list.locations):
 		delivery_note = create_dn_wo_so(pick_list)
@@ -1302,9 +1307,9 @@ def create_dn_for_pick_lists(source_name, target_doc=None, kwargs=None):
 		if isinstance(delivery_note, str):
 			delivery_note = frappe.get_doc(frappe.parse_json(delivery_note))
 
-		delivery_note = create_dn_wo_so(pick_list, delivery_note)
+		delivery_note = create_dn_wo_so(pick_list, delivery_note[0])
 
-	return delivery_note
+	return delivery_note[0] if delivery_note is list else delivery_note
 
 
 def create_dn_with_so(sales_dict, pick_list):
@@ -1312,14 +1317,15 @@ def create_dn_with_so(sales_dict, pick_list):
 	delivery_note = None
 
 	for customer in sales_dict:
-		delivery_note = create_dn_from_so(pick_list, sales_dict[customer], None)
-		if delivery_note:
-			delivery_note.flags.ignore_mandatory = True
-			# updates packed_items on save
-			# save as multiple customers are possible
-			delivery_note.save()
+		delivery_note_list = create_dn_from_so(pick_list, sales_dict[customer], None)
+		for delivery_note in delivery_note_list:
+			if delivery_note:
+				delivery_note.flags.ignore_mandatory = True
+				# updates packed_items on save
+				# save as multiple customers are possible
+				delivery_note.save()
 
-	return delivery_note
+	return delivery_note_list
 
 
 def create_dn_from_so(pick_list, sales_order_list, delivery_note=None, kwargs=None):
@@ -1344,18 +1350,29 @@ def create_dn_from_so(pick_list, sales_order_list, delivery_note=None, kwargs=No
 	}
 
 	kwargs = {"skip_item_mapping": True, "ignore_pricing_rule": pick_list.ignore_pricing_rule}
+	sales_order_group = sales_order_list if check_so_address(sales_order_list) else [sales_order_list]
+	delivery_note_list = []
+	for sales_order in sales_order_group:
+		is_single_so = not isinstance(sales_order, set)
+		so_for_dn = sales_order if is_single_so else next(iter(sales_order))
 
-	delivery_note = create_delivery_note_from_sales_order(
-		next(iter(sales_order_list)), delivery_note, kwargs=kwargs
-	)
+		delivery_note = create_delivery_note_from_sales_order(so_for_dn, delivery_note, kwargs=kwargs)
 
-	if not delivery_note:
-		return
+		if not delivery_note:
+			continue
 
-	for so in sales_order_list:
-		map_pl_locations(pick_list, item_table_mapper, delivery_note, so)
+		if is_single_so:
+			map_pl_locations(pick_list, item_table_mapper, delivery_note, sales_order)
+		else:
+			for so in sales_order:
+				map_pl_locations(pick_list, item_table_mapper, delivery_note, so)
 
-	return delivery_note
+		delivery_note_list.append(delivery_note) if delivery_note is not list else delivery_note_list.append(
+			delivery_note[0]
+		)
+		delivery_note = None
+
+	return delivery_note_list
 
 
 def map_pl_locations(pick_list, item_mapper, delivery_note, sales_order=None):
@@ -1644,3 +1661,18 @@ def get_pick_list_query(doctype, txt, searchfield, start, page_len, filters):
 		query = query.where(txt_condition)
 
 	return query.run(as_dict=True)
+
+
+def check_so_address(sales_order_list):
+	sales_order = frappe.qb.DocType("Sales Order")
+	distinct_billing_address_count = (
+		frappe.qb.from_(sales_order)
+		.select(
+			Count(sales_order.customer_address).distinct().as_("customer_address_count"),
+			Count(sales_order.shipping_address_name).distinct().as_("shipping_address_count"),
+		)
+		.where(sales_order.name.isin(list(sales_order_list)))
+		.run(as_dict=True)
+	)
+	result = distinct_billing_address_count[0]
+	return result["customer_address_count"] > 1 or result["shipping_address_count"] > 0
