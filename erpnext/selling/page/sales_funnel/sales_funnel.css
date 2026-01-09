@@ -1,3 +1,8 @@
+body[data-route^="sales-funnel"] {
+	.layout-main {
+		flex-direction: column;
+	}
+}
 .funnel-wrapper {
 	margin: 15px;
 	width: 100%;
