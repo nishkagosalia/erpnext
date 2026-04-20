@@ -80,13 +80,13 @@
    "default": "0",
    "fieldname": "maintain_same_rate",
    "fieldtype": "Check",
-   "label": "Maintain Same Rate Throughout the Purchase Cycle"
+   "label": "Maintain same rate throughout the Purchase Cycle"
   },
   {
    "default": "0",
    "fieldname": "allow_multiple_items",
    "fieldtype": "Check",
-   "label": "Allow Item To Be Added Multiple Times in a Transaction"
+   "label": "Allow Item to be added multiple times in a Transaction"
   },
   {
    "fieldname": "subcontract",
@@ -282,13 +282,12 @@
   }
  ],
  "grid_page_length": 50,
- "hide_toolbar": 0,
  "icon": "fa fa-cog",
  "idx": 1,
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2026-03-16 13:28:19.432589",
+ "modified": "2026-04-20 17:28:52.215233",
  "modified_by": "Administrator",
  "module": "Buying",
  "name": "Buying Settings",
@@ -306,7 +305,6 @@
   {
    "create": 1,
    "email": 1,
-   "export": 1,
    "print": 1,
    "read": 1,
    "role": "Purchase Manager",
