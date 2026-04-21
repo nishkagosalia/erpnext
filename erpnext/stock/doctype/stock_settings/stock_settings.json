@@ -15,16 +15,15 @@
   "sample_retention_warehouse",
   "stock_uom",
   "price_list_defaults_section",
-  "auto_insert_price_list_rate_if_missing",
   "update_price_list_based_on",
   "column_break_12",
+  "auto_insert_price_list_rate_if_missing",
   "update_existing_price_list_rate",
   "conversion_factor_section",
-  "allow_to_edit_stock_uom_qty_for_sales",
-  "column_break_lznj",
-  "allow_to_edit_stock_uom_qty_for_purchase",
-  "section_break_ylhd",
   "allow_uom_with_conversion_rate_defined_in_item",
+  "column_break_lznj",
+  "allow_to_edit_stock_uom_qty_for_sales",
+  "allow_to_edit_stock_uom_qty_for_purchase",
   "stock_validations_tab",
   "section_break_9",
   "over_delivery_receipt_allowance",
@@ -163,7 +162,7 @@
    "default": "0",
    "fieldname": "auto_insert_price_list_rate_if_missing",
    "fieldtype": "Check",
-   "label": "Auto Insert Item Price If Missing"
+   "label": "Auto Insert Item Price if Missing"
   },
   {
    "default": "0",
@@ -390,7 +389,7 @@
   {
    "fieldname": "conversion_factor_section",
    "fieldtype": "Section Break",
-   "label": "Stock UOM Quantity"
+   "label": "Stock UOM Settings"
   },
   {
    "fieldname": "column_break_lznj",
@@ -479,10 +478,6 @@
    "fieldtype": "Column Break"
   },
   {
-   "fieldname": "section_break_ylhd",
-   "fieldtype": "Section Break"
-  },
-  {
    "default": "0",
    "description": "If enabled, the system will allow selecting UOMs in sales and purchase transactions only if the conversion rate is set in the item master.",
    "fieldname": "allow_uom_with_conversion_rate_defined_in_item",
@@ -539,7 +534,7 @@
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2026-04-14 13:51:49.545114",
+ "modified": "2026-04-21 11:51:34.039090",
  "modified_by": "Administrator",
  "module": "Stock",
  "name": "Stock Settings",
