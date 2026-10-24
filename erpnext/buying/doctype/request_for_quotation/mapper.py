@@ -153,10 +153,11 @@ def create_rfq_items(sq_doc, supplier, rfq_row, data):
 			"cost_center",
 		]
 	}
+	rate = flt(data.get("rate"))
 	args.update(
 		{
 			"qty": flt(data.get("qty")),
-			"rate": flt(data.get("rate")),
+			"rate": rate,
 			"request_for_quotation_item": rfq_row.name,
 			"request_for_quotation": rfq_row.parent,
 			"supplier_part_no": frappe.db.get_value(
@@ -164,6 +165,10 @@ def create_rfq_items(sq_doc, supplier, rfq_row, data):
 			),
 		}
 	)
+
+	# a zero rate is otherwise replaced by the price list rate on save, as in the desk form
+	if not rate:
+		args["discount_percentage"] = 100
 
 	sq_doc.append("items", args)
 

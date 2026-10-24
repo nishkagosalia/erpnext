@@ -207,6 +207,30 @@ class TestRequestforQuotation(ERPNextTestSuite):
 		self.assertEqual(supplier_quotation_doc.get("items")[0].qty, 5)
 		self.assertEqual(supplier_quotation_doc.get("items")[0].amount, 500)
 
+	def test_zero_rate_from_portal_is_not_replaced_by_price_list_rate(self):
+		item_code = "_Test RFQ Zero Rate Item"
+		if not frappe.db.exists("Item", item_code):
+			make_item(item_code, {"stock_uom": "_Test UOM"})
+		if not frappe.db.exists("Item Price", {"item_code": item_code, "price_list": "Standard Buying"}):
+			frappe.get_doc(
+				{
+					"doctype": "Item Price",
+					"item_code": item_code,
+					"price_list": "Standard Buying",
+					"price_list_rate": 100,
+				}
+			).insert()
+
+		rfq = make_request_for_quotation(item_code=item_code)
+		rfq.supplier = rfq.suppliers[0].supplier
+		rfq.buying_price_list = "Standard Buying"
+		rfq.items[0].rate = 0
+		supplier_quotation = frappe.get_doc("Supplier Quotation", create_supplier_quotation(rfq))
+
+		self.assertEqual(supplier_quotation.items[0].price_list_rate, 100)
+		self.assertEqual(supplier_quotation.items[0].rate, 0)
+		self.assertEqual(supplier_quotation.items[0].amount, 0)
+
 	def test_portal_page_embeds_only_the_quotation_fields(self):
 		from erpnext.templates.pages.rfq import get_portal_doc
 
